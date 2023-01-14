@@ -1,4 +1,4 @@
-module github.com/dheerajbisht362/goservivelogin
+module github.com/dheerajbisht362/goservicelogin
 
 go 1.19
 
