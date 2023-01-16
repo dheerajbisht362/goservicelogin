@@ -5,8 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
-	"time"
+	"os"
 )
 
 type Database struct {
@@ -23,46 +22,24 @@ type User struct {
 	Gender   sql.NullString `json:"gender"`
 }
 
-func (db Database) CreateUser(newUserName, newUserEmail, newUserPassword, newUserGender string) (int64, error) {
+func GetDatabaseConnection() Database {
+	var (
+		password     = os.Getenv("MSSQL_DB_PASSWORD")
+		user         = os.Getenv("MSSQL_DB_USER")
+		port         = os.Getenv("MSSQL_DB_PORT")
+		databaseUsed = os.Getenv("MSSQL_DB_DATABASE")
+		host         = os.Getenv("MYSQL_DB_HOST")
+	)
 
-	err := db.SqlDb.PingContext(dbContext)
-	if err != nil {
-		fmt.Println("Error connecting to database", err)
-		return -1, err
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, databaseUsed)
+
+	sqlObj, connectionError := sql.Open("mysql", connectionString)
+	if connectionError != nil {
+		fmt.Println(fmt.Errorf("error opening database: %v", connectionError))
 	}
 
-	queryStatement := fmt.Sprintf("INSERT INTO user(name, email, password,gender) VALUES ('%s','%s', '%s','%s')", newUserName, newUserEmail, newUserPassword, newUserGender)
-
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	res, err := db.SqlDb.ExecContext(ctx, queryStatement)
-
-	if err != nil {
-		log.Println("Error when inserting query", err)
-		return -1, err
+	data := Database{
+		SqlDb: sqlObj,
 	}
-
-	log.Println(res)
-	id, _ := res.LastInsertId()
-	return id, nil
-}
-
-func (db Database) FindUser(userEmail string) (*User, error) {
-
-	err := db.SqlDb.PingContext(dbContext)
-	if err != nil {
-		fmt.Println("Error connecting to database", err)
-		return nil, err
-	}
-	fmt.Println(userEmail)
-
-	queryStatement := fmt.Sprintf("SELECT user_id,gender,name,email,password FROM user WHERE email='%s'", userEmail)
-
-	userMatch := &User{}
-	if err := db.SqlDb.QueryRow(queryStatement).Scan(&userMatch.UserID, &userMatch.Gender, &userMatch.Name, &userMatch.Email,
-		&userMatch.Password); err != nil {
-		fmt.Println("Error when scaning data")
-		return nil, err
-	}
-	return userMatch, nil
+	return data
 }
