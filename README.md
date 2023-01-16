@@ -11,5 +11,5 @@ Database Used
 - MySql
 
 Routes
-- /register
-- /login
+-> /register
+-> /login
